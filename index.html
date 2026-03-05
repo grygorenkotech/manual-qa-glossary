@@ -8,12 +8,9 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #ffffff;
       --text: #1a1a1a;
       --muted: #6b7280;
       --border: #e5e7eb;
-      --accent: #2563eb;
-      --accent-light: #eff6ff;
       --tag-bg: #f3f4f6;
     }
 
@@ -22,7 +19,7 @@
       font-size: 16px;
       line-height: 1.6;
       color: var(--text);
-      background: var(--bg);
+      background: #fff;
     }
 
     /* ── Header ── */
@@ -41,84 +38,16 @@
       letter-spacing: -0.01em;
     }
 
-    header p.subtitle {
+    header p {
       font-size: 0.85rem;
       color: var(--muted);
     }
 
-    /* ── Layout ── */
-    .layout {
-      display: flex;
-      min-height: calc(100vh - 61px);
-    }
-
-    /* ── Sidebar ── */
-    aside {
-      width: 220px;
-      flex-shrink: 0;
-      border-right: 1px solid var(--border);
-      padding: 1.5rem 1rem;
-      position: sticky;
-      top: 0;
-      height: calc(100vh - 61px);
-      overflow-y: auto;
-    }
-
-    aside label {
-      display: block;
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      margin-bottom: 0.5rem;
-    }
-
-    #search {
-      width: 100%;
-      padding: 0.4rem 0.6rem;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      font-size: 0.875rem;
-      outline: none;
-      transition: border-color 0.15s;
-      margin-bottom: 1.5rem;
-    }
-
-    #search:focus { border-color: var(--accent); }
-
-    .alpha-nav {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .alpha-nav a {
-      font-size: 0.8rem;
-      color: var(--muted);
-      text-decoration: none;
-      padding: 0.15rem 0.4rem;
-      border-radius: 3px;
-      transition: background 0.1s, color 0.1s;
-    }
-
-    .alpha-nav a:hover,
-    .alpha-nav a.active {
-      background: var(--accent-light);
-      color: var(--accent);
-    }
-
     /* ── Main ── */
     main {
-      flex: 1;
-      padding: 2rem 2.5rem;
-      max-width: 780px;
-    }
-
-    .count {
-      font-size: 0.8rem;
-      color: var(--muted);
-      margin-bottom: 1.75rem;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 2rem;
     }
 
     /* ── Letter group ── */
@@ -148,15 +77,14 @@
     .entry-term {
       font-size: 1rem;
       font-weight: 600;
-      color: var(--text);
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.2rem;
     }
 
     .entry-aka {
       font-size: 0.8rem;
       color: var(--muted);
-      margin-bottom: 0.5rem;
       font-style: italic;
+      margin-bottom: 0.5rem;
     }
 
     .entry-def {
@@ -179,14 +107,6 @@
       border-radius: 3px;
     }
 
-    /* ── No results ── */
-    #no-results {
-      display: none;
-      color: var(--muted);
-      font-size: 0.9rem;
-      padding: 2rem 0;
-    }
-
     /* ── Footer ── */
     footer {
       border-top: 1px solid var(--border);
@@ -195,8 +115,7 @@
       color: var(--muted);
     }
 
-    @media (max-width: 640px) {
-      aside { display: none; }
+    @media (max-width: 600px) {
       main { padding: 1.25rem 1rem; }
       header { padding: 1rem; }
     }
@@ -206,25 +125,10 @@
 
 <header>
   <h1>Глосарій мануальника</h1>
-  <p class="subtitle">Польовий довідник різновидів — очима соцмереж</p>
+  <p>Польовий довідник різновидів — очима соцмереж</p>
 </header>
 
-<div class="layout">
-
-  <aside>
-    <label for="search">Пошук</label>
-    <input id="search" type="search" placeholder="термін…" autocomplete="off" />
-
-    <div class="alpha-nav" id="alpha-nav"></div>
-  </aside>
-
-  <main>
-    <p class="count" id="count"></p>
-    <div id="glossary"></div>
-    <p id="no-results">Нічого не знайдено.</p>
-  </main>
-
-</div>
+<main id="glossary"></main>
 
 <footer>
   Глосарій поповнюється. Усі терміни — фольклор соцмереж, не стандарт.
@@ -297,39 +201,21 @@ const TERMS = [
   },
 ];
 
-// ─── Build glossary ───────────────────────────────────────
-function groupByLetter(items) {
-  const map = {};
-  for (const t of items) {
-    if (!map[t.letter]) map[t.letter] = [];
-    map[t.letter].push(t);
-  }
-  return map;
+function esc(str) {
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
-function renderGlossary(items) {
+function render() {
   const container = document.getElementById("glossary");
-  const noResults = document.getElementById("no-results");
-  const countEl   = document.getElementById("count");
-
-  container.innerHTML = "";
-
-  if (!items.length) {
-    noResults.style.display = "block";
-    countEl.textContent = "";
-    return;
+  const grouped = {};
+  for (const t of TERMS) {
+    if (!grouped[t.letter]) grouped[t.letter] = [];
+    grouped[t.letter].push(t);
   }
 
-  noResults.style.display = "none";
-  countEl.textContent = `${items.length} ${plural(items.length, "термін", "терміни", "термінів")}`;
-
-  const grouped = groupByLetter(items);
-  const letters = Object.keys(grouped).sort();
-
-  for (const letter of letters) {
+  for (const letter of Object.keys(grouped).sort()) {
     const group = document.createElement("div");
     group.className = "letter-group";
-    group.id = `letter-${letter}`;
 
     const h2 = document.createElement("h2");
     h2.textContent = letter;
@@ -351,50 +237,7 @@ function renderGlossary(items) {
   }
 }
 
-function buildAlphaNav(items) {
-  const letters = [...new Set(items.map(t => t.letter))].sort();
-  const nav = document.getElementById("alpha-nav");
-  nav.innerHTML = "";
-  for (const l of letters) {
-    const a = document.createElement("a");
-    a.href = `#letter-${l}`;
-    a.textContent = l;
-    nav.appendChild(a);
-  }
-}
-
-function esc(str) {
-  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-
-function plural(n, one, few, many) {
-  const mod10 = n % 10, mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${n} ${one}`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return `${n} ${few}`;
-  return `${n} ${many}`;
-}
-
-// ─── Search ───────────────────────────────────────────────
-document.getElementById("search").addEventListener("input", function () {
-  const q = this.value.trim().toLowerCase();
-  if (!q) {
-    renderGlossary(TERMS);
-    buildAlphaNav(TERMS);
-    return;
-  }
-  const filtered = TERMS.filter(t =>
-    t.term.toLowerCase().includes(q) ||
-    (t.aka  && t.aka.toLowerCase().includes(q)) ||
-    t.def.toLowerCase().includes(q) ||
-    t.tags.some(tag => tag.toLowerCase().includes(q))
-  );
-  renderGlossary(filtered);
-  buildAlphaNav(filtered);
-});
-
-// ─── Init ─────────────────────────────────────────────────
-renderGlossary(TERMS);
-buildAlphaNav(TERMS);
+render();
 </script>
 
 </body>
